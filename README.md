@@ -4,10 +4,11 @@ A retro offline runner game built with Python and Pygame featuring procedural 2D
 
 ---
 
-## ⚡ Quick Download (Windows Standalone)
-👉 **[Click Here to Download DinoJump.exe](https://github.com/Sagarkingz/dino-jump-python/releases/download/v1.0.0/DinoJump.exe)**
+## ⚡ Quick Download (Windows - No Python Needed)
+👉 **[Download DinoJump-Windows.zip](https://github.com/Sagarkingz/dino-jump-python/releases/download/v1.0.0/DinoJump-Windows.zip)**
 
-*No Python or external libraries required to play!*
+1. Download and extract **`DinoJump-Windows.zip`**.
+2. Open the extracted folder and double-click **`DinoJump.exe`** to play.
 
 ---
 
