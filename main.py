@@ -3,7 +3,7 @@ import random
 import sys
 import time
 import pygame
-from src.cloud import Cloud
+from src.cloud import Cloud, GroundDetail
 from src.dino import Dino
 from src.obstacle import Obstacle
 
@@ -15,47 +15,46 @@ GROUND_Y = 240
 FPS = 60
 
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
-pygame.display.set_caption("Chrome Dino - 2D Edition")
+pygame.display.set_caption("Chrome Dino 2.0 - Next-Gen Runner")
 clock = pygame.time.Clock()
 
 FONT = pygame.font.SysFont("Courier", 20, bold=True)
 GAME_OVER_FONT = pygame.font.SysFont("Courier", 28, bold=True)
 
+# Dino 2.0 Color Palettes (Switches every 1000 points)
 THEMES = [
-    {"name": "CLASSIC", "bg": (247, 247, 247), "fg": (83, 83, 83), "cloud": (210, 210, 210)},
-    {"name": "NIGHT MODE", "bg": (32, 33, 36), "fg": (230, 230, 230), "cloud": (80, 80, 80)},
-    {"name": "DESERT", "bg": (250, 243, 224), "fg": (120, 80, 40), "cloud": (220, 205, 180)},
-    {"name": "JUNGLE", "bg": (235, 247, 235), "fg": (35, 95, 45), "cloud": (190, 220, 190)},
-    {"name": "ARCTIC", "bg": (235, 245, 255), "fg": (40, 80, 130), "cloud": (190, 210, 230)}
+    {"name": "CLASSIC 2.0", "bg": (247, 247, 247), "fg": (60, 60, 60), "cloud": (210, 210, 210)},
+    {"name": "CYBER NIGHT", "bg": (24, 26, 32), "fg": (0, 255, 180), "cloud": (60, 75, 90)},
+    {"name": "DESERT DUNE", "bg": (252, 246, 229), "fg": (140, 75, 30), "cloud": (225, 205, 175)},
+    {"name": "JUNGLE ACID", "bg": (230, 248, 235), "fg": (20, 110, 45), "cloud": (180, 220, 190)},
+    {"name": "ARCTIC FROST", "bg": (235, 245, 255), "fg": (30, 90, 160), "cloud": (195, 215, 235)}
 ]
 
 
 async def main():
     dino = Dino(x=60, y=GROUND_Y)
     obstacles = []
-    clouds = [Cloud(WIDTH), Cloud(WIDTH + 300)]
+    clouds = [Cloud(WIDTH), Cloud(WIDTH + 280), Cloud(WIDTH + 540)]
+    ground_specks = [GroundDetail(random.randint(0, WIDTH), GROUND_Y) for _ in range(15)]
 
-    score = 0
+    score = 0.0
     high_score = 0
-    
-    # Real-World Speed in Pixels Per Second
-    SPEED_START = 260.0  # Slow, authentic starting crawl (pixels/sec)
-    SPEED_MAX = 750.0
-    ACCEL = 4.0          # Pixels/sec gained per second played
+
+    # Authentic smooth acceleration curve
+    SPEED_START = 270.0
+    SPEED_MAX = 720.0
+    ACCELERATION = 3.5
 
     current_speed = SPEED_START
     spawn_timer = 0.0
     game_over = False
-    
     last_time = time.time()
 
     running = True
     while running:
-        # Calculate strict elapsed real time (Delta Time)
         now = time.time()
         dt = now - last_time
         last_time = now
-        # Clamp dt to prevent massive jumps on tab switches
         if dt > 0.05:
             dt = 0.016
 
@@ -70,7 +69,7 @@ async def main():
                     if game_over:
                         dino = Dino(x=60, y=GROUND_Y)
                         obstacles = []
-                        score = 0
+                        score = 0.0
                         current_speed = SPEED_START
                         game_over = False
                     else:
@@ -79,7 +78,7 @@ async def main():
                 if game_over:
                     dino = Dino(x=60, y=GROUND_Y)
                     obstacles = []
-                    score = 0
+                    score = 0.0
                     current_speed = SPEED_START
                     game_over = False
                 else:
@@ -88,27 +87,34 @@ async def main():
         if not game_over:
             dino.update()
 
+            # Clouds & Ground details
             for cloud in clouds:
-                cloud.x -= 80 * dt
+                cloud.update(dt)
                 if cloud.x + 60 < 0:
                     clouds.remove(cloud)
                     clouds.append(Cloud(WIDTH))
 
-            # Gradual speed increase
-            if current_speed < SPEED_MAX:
-                current_speed += ACCEL * dt
+            for speck in ground_specks:
+                speck.update(current_speed, dt)
+                if speck.x < -15:
+                    ground_specks.remove(speck)
+                    ground_specks.append(GroundDetail(WIDTH, GROUND_Y))
 
-            # Obstacle Spawning based on distance/time
+            # Gradual speed progression
+            if current_speed < SPEED_MAX:
+                current_speed += ACCELERATION * dt
+
+            # Obstacle spawner
             spawn_timer += dt
-            spawn_delay = 1.4 * (SPEED_START / current_speed) + random.uniform(0.1, 0.8)
-            if spawn_timer >= spawn_delay:
+            spawn_interval = 1.35 * (SPEED_START / current_speed) + random.uniform(0.1, 0.75)
+            if spawn_timer >= spawn_interval:
                 obstacles.append(Obstacle(WIDTH, GROUND_Y))
                 spawn_timer = 0.0
 
-            # Move obstacles with exact pixel velocity
+            # Obstacles update & collision
             for obs in list(obstacles):
-                obs.x -= current_speed * dt
-                if obs.x + obs.width < 0:
+                obs.update(current_speed * dt)
+                if obs.x + obs.width < -10:
                     obstacles.remove(obs)
 
                 if dino.get_mask().colliderect(obs.get_mask()):
@@ -116,21 +122,26 @@ async def main():
                     if int(score) > high_score:
                         high_score = int(score)
 
-            # Score increments by real distance covered
-            score += dt * (current_speed / 25.0)
+            score += dt * (current_speed / 28.0)
 
-        # --- Draw ---
+        # --- Render ---
         screen.fill(theme["bg"])
 
+        # Clouds
         for cloud in clouds:
             cloud.draw(screen, theme["cloud"])
 
+        # Ground line and terrain specks
         pygame.draw.line(screen, theme["fg"], (0, GROUND_Y + 48), (WIDTH, GROUND_Y + 48), 2)
+        for speck in ground_specks:
+            speck.draw(screen, theme["cloud"])
 
+        # Entities
         dino.draw(screen, theme["fg"], theme["bg"])
         for obs in obstacles:
             obs.draw(screen, theme["fg"])
 
+        # HUD Score
         score_str = f"HI {high_score:05d}  {int(score):05d}"
         score_surf = FONT.render(score_str, True, theme["fg"])
         screen.blit(score_surf, (WIDTH - 240, 25))
