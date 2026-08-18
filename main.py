@@ -59,22 +59,23 @@ async def main():
   obstacles = []
   clouds = [Cloud(WIDTH), Cloud(WIDTH + 300)]
 
-  score = 0
+  score_ticks = 0
+  display_score = 0
   high_score = 0
-  
-  # Chrome Dino Exact Speed Scaling Constants
-  INITIAL_SPEED = 5.0
-  MAX_SPEED = 13.0
-  ACCELERATION = 0.0015  # Continuous smooth speed ramp
-  
+
+  # Authentic Chrome Dino baseline parameters
+  INITIAL_SPEED = 3.2
+  MAX_SPEED = 9.5
+  ACCELERATION = 0.0006
+
   game_speed = INITIAL_SPEED
   spawn_timer = 0
   game_over = False
 
   running = True
   while running:
-    # Environment shifts every 1000 score
-    theme = THEMES[(score // 1000) % len(THEMES)]
+    clock.tick(FPS)
+    theme = THEMES[(display_score // 1000) % len(THEMES)]
 
     for event in pygame.event.get():
       if event.type == pygame.QUIT:
@@ -85,7 +86,8 @@ async def main():
           if game_over:
             dino = Dino(x=60, y=GROUND_Y)
             obstacles = []
-            score = 0
+            score_ticks = 0
+            display_score = 0
             game_speed = INITIAL_SPEED
             game_over = False
           else:
@@ -94,7 +96,8 @@ async def main():
         if game_over:
           dino = Dino(x=60, y=GROUND_Y)
           obstacles = []
-          score = 0
+          score_ticks = 0
+          display_score = 0
           game_speed = INITIAL_SPEED
           game_over = False
         else:
@@ -103,27 +106,24 @@ async def main():
     if not game_over:
       dino.update()
 
-      # Background clouds
+      # Clouds
       for cloud in clouds:
         cloud.update()
         if cloud.x + 60 < 0:
           clouds.remove(cloud)
           clouds.append(Cloud(WIDTH))
 
-      # Smooth acceleration per tick (capped at MAX_SPEED)
+      # Smooth acceleration
       if game_speed < MAX_SPEED:
         game_speed += ACCELERATION
 
-      # Dynamic spawn threshold that scales with game speed
-      min_spawn = int(60 / (game_speed / 5.0))
-      max_spawn = int(120 / (game_speed / 5.0))
-
+      # Realistic obstacle spawn frequency
+      spawn_threshold = random.randint(int(85 / (game_speed / 3.2)), int(160 / (game_speed / 3.2)))
       spawn_timer += 1
-      if spawn_timer > random.randint(min_spawn, max_spawn):
+      if spawn_timer >= spawn_threshold:
         obstacles.append(Obstacle(WIDTH, GROUND_Y))
         spawn_timer = 0
 
-      # Update obstacles & check collision
       for obs in list(obstacles):
         obs.update(game_speed)
         if obs.x + obs.width < 0:
@@ -131,11 +131,12 @@ async def main():
 
         if dino.get_mask().colliderect(obs.get_mask()):
           game_over = True
-          if score > high_score:
-            high_score = score
+          if display_score > high_score:
+            high_score = display_score
 
-      # Score progression
-      score += 1
+      # Score tick rate matches standard Chrome rate
+      score_ticks += 1
+      display_score = score_ticks // 4
 
     # --- Render ---
     screen.fill(theme["bg"])
@@ -151,15 +152,13 @@ async def main():
     for obs in obstacles:
       obs.draw(screen, theme["fg"])
 
-    score_str = f"HI {high_score:05d}  {score:05d}"
+    score_str = f"HI {high_score:05d}  {display_score:05d}"
     score_surf = FONT.render(score_str, True, theme["fg"])
     screen.blit(score_surf, (WIDTH - 240, 25))
 
     if game_over:
       go_msg = GAME_OVER_FONT.render("G A M E   O V E R", True, theme["fg"])
-      sub_msg = FONT.render(
-          "Press SPACE or Tap to Restart", True, theme["fg"]
-      )
+      sub_msg = FONT.render("Press SPACE or Tap to Restart", True, theme["fg"])
       screen.blit(
           go_msg, (WIDTH // 2 - go_msg.get_width() // 2, HEIGHT // 2 - 35)
       )
@@ -168,7 +167,7 @@ async def main():
       )
 
     pygame.display.flip()
-    await asyncio.sleep(0)
+    await asyncio.sleep(0.012)  # Normalizes browser animation tick cycle
 
 
 if __name__ == "__main__":

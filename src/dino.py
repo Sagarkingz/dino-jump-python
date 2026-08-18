@@ -8,8 +8,9 @@ class Dino:
         self.width = 44
         self.height = 48
         self.vy = 0
-        self.jump_force = -13.5
-        self.gravity = 0.7
+        # Chrome Dino standard gravity & jump balance
+        self.jump_force = -11.8
+        self.gravity = 0.58
         self.is_grounded = True
         self.leg_step = 0
 
@@ -19,7 +20,6 @@ class Dino:
             self.is_grounded = False
 
     def update(self):
-        # Physics
         self.y += self.vy
         self.vy += self.gravity
 
@@ -29,7 +29,7 @@ class Dino:
             self.is_grounded = True
 
         if self.is_grounded:
-            self.leg_step = (self.leg_step + 0.2) % 2
+            self.leg_step = (self.leg_step + 0.15) % 2
 
     def draw(self, screen, color=(83, 83, 83), bg_color=(247, 247, 247)):
         x, y = int(self.x), int(self.y)
@@ -38,37 +38,32 @@ class Dino:
         pygame.draw.rect(screen, color, (x, y + 20, 6, 8))
         pygame.draw.rect(screen, color, (x + 4, y + 16, 6, 16))
 
-        # 2. Main Body
+        # 2. Body
         pygame.draw.rect(screen, color, (x + 8, y + 12, 22, 24))
 
         # 3. Head & Snout
         pygame.draw.rect(screen, color, (x + 18, y, 22, 14))
         pygame.draw.rect(screen, color, (x + 36, y + 2, 8, 12))
 
-        # 4. Open Jaw & Eye
-        # Eye cutout
+        # 4. Eye & Open Mouth Cutout
         pygame.draw.rect(screen, bg_color, (x + 24, y + 3, 4, 4))
-        # Open mouth cutout
         pygame.draw.rect(screen, bg_color, (x + 32, y + 8, 12, 4))
 
-        # 5. Tiny Front Arm
+        # 5. Front Arm
         pygame.draw.rect(screen, color, (x + 28, y + 20, 6, 3))
         pygame.draw.rect(screen, color, (x + 32, y + 23, 2, 4))
 
-        # 6. Animated 2D Legs
+        # 6. Legs
         if self.is_grounded:
             if self.leg_step < 1:
-                # Leg A down, Leg B back
                 pygame.draw.rect(screen, color, (x + 14, y + 36, 4, 12))
                 pygame.draw.rect(screen, color, (x + 14, y + 45, 7, 3))
                 pygame.draw.rect(screen, color, (x + 24, y + 36, 4, 6))
             else:
-                # Leg A back, Leg B down
                 pygame.draw.rect(screen, color, (x + 14, y + 36, 4, 6))
                 pygame.draw.rect(screen, color, (x + 24, y + 36, 4, 12))
                 pygame.draw.rect(screen, color, (x + 24, y + 45, 7, 3))
         else:
-            # Jumping pose (both legs tucked)
             pygame.draw.rect(screen, color, (x + 14, y + 36, 4, 8))
             pygame.draw.rect(screen, color, (x + 22, y + 36, 4, 8))
 
