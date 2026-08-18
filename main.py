@@ -61,12 +61,19 @@ async def main():
 
   score = 0
   high_score = 0
-  game_speed = 7.5
+  
+  # Chrome Dino Exact Speed Scaling Constants
+  INITIAL_SPEED = 5.0
+  MAX_SPEED = 13.0
+  ACCELERATION = 0.0015  # Continuous smooth speed ramp
+  
+  game_speed = INITIAL_SPEED
   spawn_timer = 0
   game_over = False
 
   running = True
   while running:
+    # Environment shifts every 1000 score
     theme = THEMES[(score // 1000) % len(THEMES)]
 
     for event in pygame.event.get():
@@ -79,17 +86,16 @@ async def main():
             dino = Dino(x=60, y=GROUND_Y)
             obstacles = []
             score = 0
-            game_speed = 7.5
+            game_speed = INITIAL_SPEED
             game_over = False
           else:
             dino.jump()
-      # Support screen tap/click for mobile browsers
       if event.type == pygame.MOUSEBUTTONDOWN:
         if game_over:
           dino = Dino(x=60, y=GROUND_Y)
           obstacles = []
           score = 0
-          game_speed = 7.5
+          game_speed = INITIAL_SPEED
           game_over = False
         else:
           dino.jump()
@@ -97,17 +103,27 @@ async def main():
     if not game_over:
       dino.update()
 
+      # Background clouds
       for cloud in clouds:
         cloud.update()
         if cloud.x + 60 < 0:
           clouds.remove(cloud)
           clouds.append(Cloud(WIDTH))
 
+      # Smooth acceleration per tick (capped at MAX_SPEED)
+      if game_speed < MAX_SPEED:
+        game_speed += ACCELERATION
+
+      # Dynamic spawn threshold that scales with game speed
+      min_spawn = int(60 / (game_speed / 5.0))
+      max_spawn = int(120 / (game_speed / 5.0))
+
       spawn_timer += 1
-      if spawn_timer > random.randint(55, 100):
+      if spawn_timer > random.randint(min_spawn, max_spawn):
         obstacles.append(Obstacle(WIDTH, GROUND_Y))
         spawn_timer = 0
 
+      # Update obstacles & check collision
       for obs in list(obstacles):
         obs.update(game_speed)
         if obs.x + obs.width < 0:
@@ -118,11 +134,10 @@ async def main():
           if score > high_score:
             high_score = score
 
+      # Score progression
       score += 1
-      if score % 250 == 0:
-        game_speed += 0.35
 
-    # Drawing
+    # --- Render ---
     screen.fill(theme["bg"])
 
     for cloud in clouds:
@@ -153,7 +168,7 @@ async def main():
       )
 
     pygame.display.flip()
-    await asyncio.sleep(0)  # Critical for browser execution
+    await asyncio.sleep(0)
 
 
 if __name__ == "__main__":
